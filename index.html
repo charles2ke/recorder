@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recorder – Live Transcription</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app">
+    <header>
+      <h1>Recorder</h1>
+      <p class="subtitle">Speak and watch your thoughts appear live.</p>
+    </header>
+
+    <div id="unsupported" class="notice" hidden>
+      Your browser does not support live speech recognition.
+      Please use a recent version of Chrome, Edge or Safari.
+    </div>
+
+    <section class="controls">
+      <button id="toggle" type="button" class="record">Start recording</button>
+      <label class="lang">
+        Language
+        <select id="language">
+          <option value="en-US">English (US)</option>
+          <option value="en-GB">English (UK)</option>
+          <option value="es-ES">Español</option>
+          <option value="fr-FR">Français</option>
+          <option value="de-DE">Deutsch</option>
+          <option value="it-IT">Italiano</option>
+          <option value="pt-BR">Português (BR)</option>
+          <option value="sw-KE">Kiswahili</option>
+        </select>
+      </label>
+      <span id="status" class="status" role="status" aria-live="polite">Idle</span>
+    </section>
+
+    <section class="transcript-wrap">
+      <div id="transcript" class="transcript" aria-label="Transcript"><span id="final"></span><span id="interim" class="interim"></span></div>
+      <p id="placeholder" class="placeholder">Press “Start recording” and begin speaking…</p>
+    </section>
+
+    <section class="actions">
+      <button id="copy" type="button">Copy</button>
+      <button id="download" type="button">Download .txt</button>
+      <button id="clear" type="button">Clear</button>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
