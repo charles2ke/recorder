@@ -58,6 +58,23 @@ test('restarts recognition after the browser ends it while recording', async ({ 
   expect(await page.evaluate(() => window.__rec.started)).toBe(true);
 });
 
+test('stops recording after a recognition error instead of retrying', async ({ page }) => {
+  await page.addInitScript(mockSpeech);
+  await page.goto('/');
+  await page.click('#toggle');
+  await expect(page.locator('#status')).toHaveText('Listening…');
+
+  await page.evaluate(() => {
+    window.__rec.onerror({ error: 'network' });
+    window.__rec.started = false;
+    window.__rec.onend();
+  });
+
+  await expect(page.locator('#toggle')).toHaveText('Start recording');
+  await expect(page.locator('#status')).toHaveText('Error: network');
+  expect(await page.evaluate(() => window.__rec.started)).toBe(false);
+});
+
 test('shows a notice when speech recognition is unsupported', async ({ page }) => {
   await page.addInitScript(() => {
     delete window.SpeechRecognition;

@@ -72,6 +72,8 @@
         setStatus('Microphone access was denied.');
         return;
       }
+      wantRecording = false;
+      updateButton();
       setStatus('Error: ' + event.error);
     };
 
