@@ -8,6 +8,7 @@
   const statusEl = document.getElementById('status');
   const finalEl = document.getElementById('final');
   const interimEl = document.getElementById('interim');
+  const announcementsEl = document.getElementById('announcements');
   const placeholderEl = document.getElementById('placeholder');
   const transcriptEl = document.getElementById('transcript');
   const copyBtn = document.getElementById('copy');
@@ -25,7 +26,7 @@
 
   function render(interimText) {
     finalEl.textContent = finalText;
-    interimEl.textContent = interimText || '';
+    interimEl.textContent = (finalText && interimText && !/^\s/.test(interimText) ? ' ' : '') + (interimText || '');
     placeholderEl.hidden = Boolean(finalText || interimText);
     transcriptEl.scrollTop = transcriptEl.scrollHeight;
   }
@@ -48,23 +49,31 @@
     rec.lang = languageSelect.value;
 
     rec.onstart = function () {
+      if (recognition !== rec || !wantRecording) return;
       setStatus('Listening…', true);
     };
 
     rec.onresult = function (event) {
       let interim = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      const newlyFinalized = [];
+      if (recognition !== rec) return;
+      for (let i = 0; i < event.results.length; i++) {
         const result = event.results[i];
         if (result.isFinal) {
-          appendFinal(result[0].transcript);
+          if (i >= event.resultIndex) {
+            appendFinal(result[0].transcript);
+            newlyFinalized.push(result[0].transcript.trim());
+          }
         } else {
           interim += result[0].transcript;
         }
       }
       render(interim);
+      if (newlyFinalized.length) announcementsEl.textContent = newlyFinalized.join(' ');
     };
 
     rec.onerror = function (event) {
+      if (recognition !== rec) return;
       if (event.error === 'no-speech' || event.error === 'aborted') return;
       if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
         wantRecording = false;
@@ -78,6 +87,7 @@
     };
 
     rec.onend = function () {
+      if (recognition !== rec) return;
       render('');
       if (wantRecording && recognition === rec) {
         // Browsers stop recognition after silence; restart to keep transcribing.
@@ -133,6 +143,7 @@
       recognition = null;
       old.onend = null;
       old.abort();
+      render('');
       start();
     });
   }

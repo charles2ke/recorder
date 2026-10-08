@@ -35,10 +35,13 @@ test('live transcribes interim and final speech', async ({ page }) => {
 
   await page.evaluate(() => window.__emit([['hello world', true], ['this is', false]]));
   await expect(page.locator('#final')).toHaveText('hello world');
-  await expect(page.locator('#interim')).toHaveText('this is');
+  await expect(page.locator('#interim')).toHaveText(' this is');
+  await expect(page.locator('#transcript')).toHaveText('hello world this is');
+  await expect(page.locator('#announcements')).toHaveText('hello world');
 
   await page.evaluate(() => window.__emit([['hello world', true], ['this is live', true]], 1));
   await expect(page.locator('#final')).toHaveText('hello world this is live');
+  await expect(page.locator('#announcements')).toHaveText('this is live');
   await page.screenshot({ path: 'test-results/screenshots/final.png' });
 
   await page.click('#toggle');
@@ -56,6 +59,57 @@ test('restarts recognition after the browser ends it while recording', async ({ 
   await page.click('#toggle');
   await page.evaluate(() => { window.__rec.started = false; window.__rec.onend(); });
   expect(await page.evaluate(() => window.__rec.started)).toBe(true);
+});
+
+test('retains unchanged interim results and announces only new final results', async ({ page }) => {
+  await page.addInitScript(mockSpeech);
+  await page.goto('/');
+  await page.click('#toggle');
+
+  await page.evaluate(() => window.__emit([['unchanged ', false], ['changed ', false]], 1));
+  await expect(page.locator('#interim')).toHaveText('unchanged changed ');
+
+  await page.evaluate(() => window.__emit([['unchanged ', false], ['final phrase', true]], 1));
+  await expect(page.locator('#final')).toHaveText('final phrase');
+  await expect(page.locator('#interim')).toHaveText(' unchanged ');
+  await expect(page.locator('#announcements')).toHaveText('final phrase');
+});
+
+test('ignores delayed events from stopped or replaced recognizers', async ({ page }) => {
+  await page.addInitScript(mockSpeech);
+  await page.goto('/');
+  await page.evaluate(() => {
+    document.querySelector('#toggle').click();
+    window.__oldRec = window.__rec;
+    document.querySelector('#toggle').click();
+    window.__oldRec.onstart();
+  });
+  await expect(page.locator('#status')).toHaveText('Idle');
+
+  await page.click('#toggle');
+  await expect(page.locator('#status')).toHaveText('Listening…');
+  await page.evaluate(() => {
+    window.__emit([['current interim', false]]);
+    window.__oldRec.onerror({ error: 'not-allowed' });
+    window.__oldRec.onresult({ resultIndex: 0, results: [] });
+    window.__oldRec.onend();
+  });
+
+  await expect(page.locator('#toggle')).toHaveText('Stop recording');
+  await expect(page.locator('#status')).toHaveText('Listening…');
+  await expect(page.locator('#interim')).toHaveText('current interim');
+});
+
+test('clears interim text when the recognition language changes', async ({ page }) => {
+  await page.addInitScript(mockSpeech);
+  await page.goto('/');
+  await page.click('#toggle');
+  await page.evaluate(() => window.__emit([['confirmed', true], ['old language', false]]));
+
+  await page.selectOption('#language', 'es-ES');
+  await expect(page.locator('#final')).toHaveText('confirmed');
+  await expect(page.locator('#interim')).toHaveText('');
+  await expect(page.locator('#transcript')).toHaveText('confirmed');
 });
 
 test('stops recording after a recognition error instead of retrying', async ({ page }) => {
