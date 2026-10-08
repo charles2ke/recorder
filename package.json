@@ -1,0 +1,21 @@
+{
+  "name": "recorder",
+  "version": "1.0.0",
+  "description": "Speak and get a live transcription in the browser",
+  "scripts": {
+    "start": "http-server -p 4173 -s .",
+    "test": "playwright test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://localhost:26831/charles2ke/recorder"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.64.0",
+    "http-server": "^14.1.1"
+  }
+}
