@@ -21,6 +21,11 @@ so it works in Chrome, Edge and Safari (Firefox is not supported). In Chrome, au
 speech service for recognition, so an internet connection is required. The page must be served from
 `localhost` or over HTTPS for microphone access.
 
+## Live demo
+The app is published to GitHub Pages at https://charles2ke.github.io/recorder/ by the
+`Deploy to GitHub Pages` workflow (`.github/workflows/pages.yml`) on every push to `main`.
+If the first deployment fails, set **Settings → Pages → Build and deployment → Source** to **GitHub Actions**.
+
 ## Tests
 ```bash
 npx playwright install chromium
