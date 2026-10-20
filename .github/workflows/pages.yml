@@ -30,8 +30,6 @@ jobs:
           mkdir _site
           cp index.html app.js styles.css _site/
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

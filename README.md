@@ -24,7 +24,9 @@ speech service for recognition, so an internet connection is required. The page 
 ## Live demo
 The app is published to GitHub Pages at https://charles2ke.github.io/recorder/ by the
 `Deploy to GitHub Pages` workflow (`.github/workflows/pages.yml`) on every push to `main`.
-If the first deployment fails, set **Settings → Pages → Build and deployment → Source** to **GitHub Actions**.
+GitHub Pages must be enabled once by a repository admin before the workflow can deploy
+(the workflow's `GITHUB_TOKEN` cannot create the Pages site): set
+**Settings → Pages → Build and deployment → Source** to **GitHub Actions**, then re-run the workflow.
 
 ## Tests
 ```bash
