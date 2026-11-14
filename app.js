@@ -45,6 +45,7 @@
   const settings = Object.assign({ lang: '', voiceCommands: true, saveAudio: false }, store.loadSettings());
   // Audio recorded in this tab that has not been written to IndexedDB (yet).
   const sessionBlobs = new Map();
+  const pendingAudioByNote = new Map();
   const notes = new Map(store.loadNotes().map(function (note) { return [note.id, note]; }));
   let currentId = null;
   let recognition = null;
@@ -200,7 +201,7 @@
     downloadBtn.disabled = !hasText;
     clearBtn.disabled = !note.text;
     newNoteBtn.disabled = recording || isEmpty(note);
-    deleteNoteBtn.disabled = recording || isEmpty(note);
+    deleteNoteBtn.disabled = recording || pendingAudioByNote.has(currentId) || isEmpty(note);
     commandsInput.disabled = !commandsAvailable;
     commandsInput.checked = commandsAvailable && settings.voiceCommands;
     commandsNote.hidden = !SpeechRecognition || commandsAvailable;
@@ -543,12 +544,14 @@
   }
 
   function startAudioCapture(active) {
-    const capture = { recorder: null, stream: null, chunks: [], startedAt: 0, stopped: false };
+    const capture = { noteId: active.noteId, recorder: null, stream: null, chunks: [], startedAt: 0, stopped: false, finalized: false };
+    pendingAudioByNote.set(capture.noteId, (pendingAudioByNote.get(capture.noteId) || 0) + 1);
     active.audio = capture;
     navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
       capture.stream = stream;
       if (capture.stopped) {
         stopTracks(stream);
+        finishAudioCapture(capture);
         return;
       }
       const recorder = new MediaRecorder(stream);
@@ -558,15 +561,29 @@
       });
       recorder.addEventListener('stop', function () {
         stopTracks(stream);
-        saveClip(active.noteId, capture, recorder.mimeType);
+        try {
+          saveClip(active.noteId, capture, recorder.mimeType);
+        } finally {
+          finishAudioCapture(capture);
+        }
       });
       recorder.start();
       capture.startedAt = Date.now();
     }).catch(function (error) {
       if (capture.stream) stopTracks(capture.stream);
       if (active.audio === capture) active.audio = null;
+      finishAudioCapture(capture);
       if (!capture.stopped) showToast('Audio isn’t being saved: ' + describeMediaError(error) + '. Transcription continues.');
     });
+  }
+
+  function finishAudioCapture(capture) {
+    if (capture.finalized) return;
+    capture.finalized = true;
+    const pending = pendingAudioByNote.get(capture.noteId) || 0;
+    if (pending <= 1) pendingAudioByNote.delete(capture.noteId);
+    else pendingAudioByNote.set(capture.noteId, pending - 1);
+    renderAll();
   }
 
   function stopAudioCapture(capture) {
@@ -833,7 +850,7 @@
 
   deleteNoteBtn.addEventListener('click', function () {
     const note = currentNote();
-    if (session || isEmpty(note)) return;
+    if (session || pendingAudioByNote.has(note.id) || isEmpty(note)) return;
     const deletion = startDeletion(note.clips);
     notes.delete(note.id);
     store.removeNote(note.id);
@@ -878,7 +895,7 @@
   // ---- Other tabs ----
 
   // Applies another tab's change to a note. The most recently edited version wins, so edits here that could not
-  // be saved are kept, and a note this tab is recording into is saved again rather than dropped.
+  // be saved are kept, and a note this tab is recording into or finalizing audio for is saved rather than dropped.
   function syncNote(id, stored) {
     const mine = notes.get(id);
     if (stored) {
@@ -886,7 +903,7 @@
       return;
     }
     if (!mine || isEmpty(mine)) return;
-    if (session && session.noteId === id) {
+    if ((session && session.noteId === id) || pendingAudioByNote.has(id)) {
       persist(mine);
       return;
     }

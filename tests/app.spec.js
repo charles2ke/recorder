@@ -31,12 +31,14 @@ const mockAudio = () => {
     start() { this.state = 'recording'; }
     stop() {
       this.state = 'inactive';
-      setTimeout(() => {
+      const finish = () => {
         const data = new Event('dataavailable');
         data.data = new Blob(['fake audio'], { type: 'audio/webm' });
         this.dispatchEvent(data);
         this.dispatchEvent(new Event('stop'));
-      }, 0);
+      };
+      if (window.__holdAudioStop) window.__finishAudioStop = finish;
+      else setTimeout(finish, 0);
     }
   };
 };
@@ -470,4 +472,23 @@ test('keeps deleted audio while the deletion can still be undone', async ({ page
   await expect.poll(() => clipIds(third)).not.toContain('orphan');
   await other.click('#toast-action');
   await expect(other.getByRole('link', { name: 'Download audio 1' })).toHaveAttribute('href', /^blob:/);
+});
+
+test('protects a note until its stopped audio capture is finalized', async ({ page }) => {
+  await page.addInitScript(mockSpeech);
+  await page.addInitScript(mockAudio);
+  await page.addInitScript(() => { window.__holdAudioStop = true; });
+  await page.goto('/');
+  await page.check('#save-audio');
+
+  await page.click('#toggle');
+  await expect(page.locator('#status')).toHaveText('Listening…');
+  await page.evaluate(() => window.__emit([['pending audio', true]]));
+  await page.click('#toggle');
+  await expect(page.locator('#toggle')).toHaveText('Start recording');
+  await expect(page.locator('#delete-note')).toBeDisabled();
+
+  await page.evaluate(() => window.__finishAudioStop());
+  await expect(page.getByRole('link', { name: 'Download audio 1' })).toHaveAttribute('href', /^blob:/);
+  await expect(page.locator('#delete-note')).toBeEnabled();
 });
