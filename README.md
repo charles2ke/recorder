@@ -6,8 +6,19 @@ Speak into your microphone and watch your words get transcribed live in the brow
 ## Features
 - Live transcription with in-progress (interim) text shown in grey and finalized text in white
 - Keeps listening through pauses (automatically restarts when the browser stops recognition)
-- Language picker
-- Copy, download as `.txt`, and clear the transcript
+- Language picker that starts in your browser's language and remembers your choice
+- Voice commands (English): say “comma”, “period”, “question mark”, “new line”, “new paragraph” and more;
+  new sentences are capitalized automatically. Can be turned off.
+- Editable transcript: fix mistakes or type notes when you are not recording
+- Saved notes: everything is saved in your browser as you go and stays in sync across open tabs.
+  Create, rename, switch between and delete notes, and export them all as Markdown
+- Optional audio: tick **Save audio** to keep a recording of each session next to its note,
+  with playback and download
+- Recording timer, word count, and <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> to start or stop
+- Copy, download as `.txt`, and clear the transcript (with undo)
+
+Notes and audio never leave your device: notes are kept in `localStorage` and audio in IndexedDB.
+Clearing site data removes them, so export anything you want to keep.
 
 ## Usage
 ```bash
@@ -33,4 +44,5 @@ GitHub Pages must be enabled once by a repository admin before the workflow can 
 npx playwright install chromium
 npm test
 ```
-Tests mock `SpeechRecognition`, so no microphone is needed. Screenshots are written to `test-results/screenshots/`.
+Tests mock `SpeechRecognition` (and the microphone and `MediaRecorder` for audio), so no microphone is needed.
+Screenshots are written to `test-results/screenshots/`.
